@@ -1,8 +1,9 @@
 import pygame
 import math
+from sprites.Bullet import TurtleBullet
 
 class Turtle(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, crosshair):
         super().__init__()
         original_image = pygame.image.load("assets/images/turtle.png").convert_alpha()
 
@@ -15,23 +16,46 @@ class Turtle(pygame.sprite.Sprite):
         self.speed = 5
         self.stop_distance = 5
 
+        self.health = 3
+
+        # Cooldown properties
+        self.shoot_cooldown = 560  # Cooldown time in milliseconds (0.3 seconds)
+        self.last_shot_time = 0  # Timestamp of the last shot
+
+        self.crosshair = crosshair  # Save reference to crosshair
+
     def update(self):
-        # Get mouse position
-        mouse_x, mouse_y = pygame.mouse.get_pos()
+        # Get the crosshair position
+        crosshair_pos = self.crosshair.pos
 
-        # Calculate direction vector
-        direction = pygame.Vector2(mouse_x - self.pos.x, mouse_y - self.pos.y)
-        distance = direction.length()  # Get distance to mouse
+        # Calculate direction vector towards the crosshair
+        direction = pygame.Vector2(crosshair_pos.x - self.pos.x, crosshair_pos.y - self.pos.y)
+        distance = direction.length()  # Get distance to crosshair
 
-        # Move only if the player is not too close to the mouse
+        # Move only if the turtle is not too close to the crosshair
         if distance > self.stop_distance:
             direction = direction.normalize()  # Normalize for consistent speed
-            self.pos += direction * self.speed  # Move in direction of the mouse
+            self.pos += direction * self.speed  # Move towards crosshair
 
-        # Rotate towards mouse
+        # Rotate towards the crosshair
         if distance > 1:  # Avoid jittering when very close
             angle = math.degrees(math.atan2(-direction.y, direction.x))  
             self.image = pygame.transform.rotate(self.original_image, angle + 270)
 
         # Update rect to match new position
         self.rect = self.image.get_rect(center=self.pos)
+
+    def shoot(self, bullets_group, target_pos):
+        """Creates a bullet with cooldown and adds it to the bullets group."""
+        current_time = pygame.time.get_ticks()  # Get current time in milliseconds
+
+        if current_time - self.last_shot_time >= self.shoot_cooldown:
+            bullet = TurtleBullet(self.rect.center, target_pos)  # Shoot towards crosshair
+            bullets_group.add(bullet)
+            self.last_shot_time = current_time  # Update last shot time
+
+    def take_damage(self, amount=1):
+        """Decreases the turtle's health and checks for game over."""
+        self.health -= amount
+        if self.health <= 0:
+            self.health = 0
