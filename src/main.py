@@ -16,7 +16,7 @@ GAME_OVER = "game_over"
 
 game_state = START_SCREEN  # Start at the menu
 
-# Create Spriteswwd
+# Create Sprites
 crosshair = Crosshair()
 
 # Create Players
@@ -141,36 +141,31 @@ def run_level():
         last_plastic_spawn = current_time  # Reset timer
 
     # Update Sprites
-    turtle.update()   # Turtle follows mouse
-    crab.update(keys)  # Crab moves with WASDxs
-    turtle_bullets.update()
-    crab_bullets.update()
-    plastic_group.update()
+    turtle.update(screen)   # Turtle follows mouse
+    crab.update(keys, screen)  # Crab moves with WASDxs
+    turtle_bullets.update(screen)
+    crab_bullets.update(screen)
+    plastic_group.update(screen)
     crosshair_group.update()
+    
+    # Collision Handling - Turtle Bullets with Plastics using Rect.colliderect
+    for bullet in turtle_bullets:
+        for plastic in plastic_group:
+            if bullet.rect.colliderect(plastic.rect):  # Check if the bullet's hitbox intersects with the plastic's hitbox
+                bullet.kill()  # Remove the bullet
+                if plastic.take_damage():
+                    coin_count += 1
 
-    # Check Bullet-Plastic Collisions
-    hits = pygame.sprite.groupcollide(turtle_bullets, plastic_group, True, False)
-    for bullet, plastics in hits.items():
-        for plastic in plastics:
-            if plastic.take_damage():  # Only increment coin count if plastic dies
-                coin_count += 1  
+    # Collision Handling - Crab Bullets with Plastics using Rect.colliderect
+    for bullet in crab_bullets:
+        for plastic in plastic_group:
+            if bullet.rect.colliderect(plastic.rect):  # Check if the bullet's hitbox intersects with the plastic's hitbox
+                bullet.kill()  # Remove the bullet
+                if plastic.take_damage():
+                    coin_count += 1
 
-    hits = pygame.sprite.groupcollide(crab_bullets, plastic_group, True, False)
-    for bullet, plastics in hits.items():
-        for plastic in plastics:
-            if plastic.take_damage():  # Only increment coin count if plastic dies
-                coin_count += 1  
-
-    # Check Player-Plastic Collisions
-    turtle_hits = pygame.sprite.spritecollide(turtle, plastic_group, True)
-    for plastic in turtle_hits:
-        turtle.take_damage()
-        coin_count += 1  # Plastic died due to collision, so give a coin
-
-    crab_hits = pygame.sprite.spritecollide(crab, plastic_group, True)
-    for plastic in crab_hits:
-        crab.take_damage()
-        coin_count += 1  # Plastic died due to collision, so give a coin
+    crab.check_bullet_collision(plastic_group)
+    turtle.check_bullet_collision(plastic_group)
 
     # Check if the game is over
     if turtle.health <= 0 or crab.health <= 0:

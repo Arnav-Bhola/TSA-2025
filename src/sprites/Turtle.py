@@ -12,6 +12,12 @@ class Turtle(pygame.sprite.Sprite):
         self.image = self.original_image
         self.rect = self.image.get_rect(center=(400, 300))
 
+        # Create a smaller hitbox
+        hitbox_width = int(self.rect.width * 0.7)  # 70% of original width
+        hitbox_height = int(self.rect.height * 0.7)  # 70% of original height
+        self.hitbox = pygame.Rect(0, 0, hitbox_width, hitbox_height)
+        self.update_hitbox()  # Align hitbox with the turtle's rect
+
         self.pos = pygame.Vector2(self.rect.center)
         self.speed = 5
         self.stop_distance = 5
@@ -24,7 +30,11 @@ class Turtle(pygame.sprite.Sprite):
 
         self.crosshair = crosshair  # Save reference to crosshair
 
-    def update(self):
+    def update_hitbox(self):
+        """Keep the hitbox centered within the turtle's rect."""
+        self.hitbox.center = self.rect.center
+
+    def update(self, screen):
         # Get the crosshair position
         crosshair_pos = self.crosshair.pos
 
@@ -43,7 +53,10 @@ class Turtle(pygame.sprite.Sprite):
             self.image = pygame.transform.rotate(self.original_image, angle + 270)
 
         # Update rect to match new position
+        self.update_hitbox()
         self.rect = self.image.get_rect(center=self.pos)
+
+        # pygame.draw.rect(screen, (255, 0, 0), self.hitbox, 2)  # Red border for hitbox
 
     def shoot(self, bullets_group, target_pos):
         """Creates a bullet with cooldown and adds it to the bullets group."""
@@ -59,3 +72,10 @@ class Turtle(pygame.sprite.Sprite):
         self.health -= amount
         if self.health <= 0:
             self.health = 0
+
+    def check_bullet_collision(self, bullets_group):
+        """Check if a bullet collides with the turtle's hitbox."""
+        for bullet in bullets_group:
+            if self.hitbox.colliderect(bullet.hitbox):  # Check for collision with bullet's hitbox
+                self.take_damage()  # Decrease health if collision occurs
+                bullet.kill()  # Remove the bullet after collision
