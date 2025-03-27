@@ -2,7 +2,7 @@ import pygame
 import random
 
 class Plastic(pygame.sprite.Sprite):
-    def __init__(self, crab, turtle):
+    def __init__(self, crab, turtle, screen):
         super().__init__()
 
         # Load the plastic image
@@ -13,7 +13,8 @@ class Plastic(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
 
         # Spawn from the right side randomly along the Y-axis
-        self.rect.x = 800  # Right edge of the screen
+        screen_width = screen.get_width()
+        self.rect.x = screen_width - 100 # Right edge of the screen
         self.rect.y = random.randint(50, 550)  # Random vertical position
 
         # Create a smaller hitbox (shrink by 20%) and center it
@@ -50,48 +51,43 @@ class Plastic(pygame.sprite.Sprite):
 
     def update(self, screen):
         """Move the plastic towards the target and update hitbox."""
-        # Handle blinking effect
+
+        # Handle blinking effect (same as before)
         if self.blinking:
-            # Check how much time has passed since blinking started
             elapsed_time = pygame.time.get_ticks() - self.blink_time
             if elapsed_time > self.blink_duration:
-                # End the blinking effect after the duration
                 self.blinking = False
-                self.visible = True  # Ensure it's visible again
+                self.visible = True
             else:
-                # Alternate visibility for blinking effect
                 self.visible = not self.visible
-
-                # Apply brightness effect during blinking
                 if self.visible:
-                    # Make the plastic brighter by filling with semi-transparent white
                     bright_surface = self.image.copy()
                     bright_surface.fill((255, 255, 255, 60), special_flags=pygame.BLEND_ADD)
                     screen.blit(bright_surface, self.rect)
-                    return  # Only draw the brightened version while blinking
+                    return
                 else:
-                    return  # If not visible, don't draw the sprite
+                    return
 
-        # Normal movement and drawing logic if not blinking
+        # Calculate direction to the target
         target_pos = pygame.Vector2(self.target.rect.centerx, self.target.rect.centery)
         current_pos = pygame.Vector2(self.rect.centerx, self.rect.centery)
-
-        # Calculate movement direction
         direction = target_pos - current_pos
-        if direction.length() != 0:  # Avoid division by zero
+
+        # Ensure direction is valid and normalized
+        if direction.length() > 1:
             direction = direction.normalize()
 
-        # Move the plastic
-        self.rect.x += direction.x * self.speed
-        self.rect.y += direction.y * self.speed
+            # Move the plastic
+            self.rect.x += direction.x * self.speed
+            self.rect.y += direction.y * self.speed
 
-        # Update hitbox position to stay centered
+        # Update hitbox
         self.update_hitbox()
 
         # Remove plastic when it moves off-screen
-        if self.rect.right < 0:
+        if self.rect.right < 0:  # Check if the plastic is off-screen
             self.kill()
 
-        # Draw the plastic only if it's visible
+        # Draw the plastic
         if self.visible:
             screen.blit(self.image, self.rect)

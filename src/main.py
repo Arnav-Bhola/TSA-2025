@@ -89,7 +89,6 @@ def draw_health(screen, turtle, crab):
     draw_character_health(turtle, 10, 10)  # Turtle at (10, 10)
     draw_character_health(crab, 10, 50)  # Crab at (10, 50)
 
-
 def draw_coins(screen):
     """Draws the coin count on the screen with leading zeros, properly aligned with the icon."""
     global coin_count
@@ -106,13 +105,32 @@ def draw_coins(screen):
 
     screen.blit(coin_text, (text_x, text_y))  # Draw the coin count
 
+def draw_wave(screen):
+    """Draws the wave number on the screen with leading zeros, properly aligned with the icon."""
+    global wave_number
+    coin_x, coin_y = 700, 10  # Position of the wave icon
+
+    font = pygame.font.Font(None, 30)
+    wave_text = font.render(f"Wave: {wave_number:02d}", True, (255, 255, 255))
+
+    # Get text size to adjust alignment
+    text_width, text_height = wave_text.get_size()
+    text_x = 700  # Position it slightly right of the coin
+    text_y = 50  # Center it vertically
+
+    screen.blit(wave_text, (text_x, text_y))  # Draw the coin count
+
+wave_number = 1  # Start at wave 1
+plastics_to_spawn = 4  # First wave starts with 4 plastics
+plastics_spawned = 0  # Track how many plastics have been spawned in the current wave
+total_plastic_spawned = 0  # Track total plastics spawned
 
 def run_level():
     
     pygame.mouse.set_visible(True)  # Hide the cursor
 
     """Main gameplay loop."""
-    global game_state, last_plastic_spawn, coin_count  # So we can change game state
+    global game_state, last_plastic_spawn, coin_count, wave_number, plastics_spawned, plastics_to_spawn, total_plastic_spawned
     screen.fill((0, 0, 50))  # Deep ocean background
 
     # Event Handling
@@ -133,12 +151,30 @@ def run_level():
 
     # Get Key Presses
     keys = pygame.key.get_pressed()
+    
+    def calc_plastic_total_spawned(wave_number):
+        sum = 0
+        for i in range(wave_number):
+            sum += i
+        sum *= 3
+        sum += wave_number*4
+        return sum
 
-    # **Spawn Plastic Every 5 Seconds**
     current_time = pygame.time.get_ticks()
-    if current_time - last_plastic_spawn >= PLASTIC_SPAWN_TIME:
-        plastic_group.add(Plastic(crab, turtle))  # Add new plastic to the group
+    number_of_plastics_that_should_have_been_spawned = calc_plastic_total_spawned(wave_number)
+    print(len(plastic_group), plastics_to_spawn, plastics_spawned, total_plastic_spawned, number_of_plastics_that_should_have_been_spawned)
+    # Spawn plastics only if we haven't spawned enough for this wave
+    if plastics_spawned < plastics_to_spawn and current_time - last_plastic_spawn >= PLASTIC_SPAWN_TIME:
+        plastic_group.add(Plastic(crab, turtle, screen))  
+        total_plastic_spawned += 1
+        plastics_spawned += 1  # Increment count
         last_plastic_spawn = current_time  # Reset timer
+
+    # Check if all plastics are gone (wave completed)
+    if len(plastic_group) == 0 and total_plastic_spawned == number_of_plastics_that_should_have_been_spawned:
+        wave_number += 1  # Increase wave number
+        plastics_spawned = 0  # Reset the counter
+        plastics_to_spawn = 4 + (wave_number - 1) * 3  # Increase difficulty
 
     # Update Sprites
     turtle.update(screen)   # Turtle follows mouse
@@ -179,6 +215,7 @@ def run_level():
     plastic_group.draw(screen)
     draw_health(screen, turtle, crab)
     draw_coins(screen)
+    draw_wave(screen)
     crosshair_group.draw(screen)
 
     return True
@@ -207,6 +244,9 @@ while running:
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                wave_number = 1  # Restart from wave 1
+                plastics_to_spawn = 4  # Reset initial wave size
+                plastics_spawned = 0  # Reset spawn counter
                 # Reset game variables
                 turtle.health = 3
                 crab.health = 3
