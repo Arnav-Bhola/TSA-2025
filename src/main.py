@@ -39,14 +39,71 @@ coin_count = 0  # Starting coins
 coin_image = pygame.image.load("assets/images/coin.png").convert_alpha()  # Load coin image
 coin_image = pygame.transform.scale(coin_image, (30, 30))  # Scale the coin image
 
+wave_number = 1  # Start at wave 1
+plastics_to_spawn = 4  # First wave starts with 4 plastics
+plastics_spawned = 0  # Track how many plastics have been spawned in the current wave
+total_plastic_spawned = 0  # Track total plastics spawned
+
+info = [
+    "important information about the ocean: The Pacific Ocean is the largest ocean. The ocean contains more than 97% of Earth's water. Over 80% of ocean life remains unexplored.", 
+    "plastic kills turtles :(",
+    "plastic is not cool"
+]
+
+def draw_text_wrapped(text, font, color, surface, x, y, max_width, line_gap):
+    """Renders the text with word wrapping within a maximum width, centers each line, and adds space between lines."""
+    words = text.split(' ')  # Split the text into words
+    lines = []  # List to store lines of text
+    current_line = ""  # Current line being constructed
+
+    # Go through each word and add it to the current line
+    for word in words:
+        # If adding this word would exceed the max width, start a new line
+        test_line = current_line + word + " "
+        test_surface = font.render(test_line, True, color)
+        if test_surface.get_width() > max_width:
+            if current_line:
+                lines.append(current_line)  # Add the current line to the list
+            current_line = word + " "  # Start a new line with the current word
+        else:
+            current_line = test_line  # Add the word to the current line
+
+    # Add the last line
+    if current_line:
+        lines.append(current_line)
+
+    # Now render the lines on the screen
+    y_offset = y
+    for line in lines:
+        line_surface = font.render(line, True, color)
+        line_x = x - line_surface.get_width() // 2  # Center each line
+        surface.blit(line_surface, (line_x, y_offset))
+        y_offset += line_surface.get_height() + line_gap  # Add gap between lines
+
+
 def draw_start_screen():
     """Draws the start screen with centered instructions."""
     screen.fill((0, 0, 50))  # Deep ocean background
-    font = pygame.font.Font(None, 50)
+
+    font = pygame.font.Font(None, 45)  # Smaller font size
     
-    text = font.render("Press any key to start!", True, (255, 255, 255))
-    text_rect = text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
-    
+    if wave_number == 1:
+        text = font.render("Press any key to start!", True, (255, 255, 255))
+        text_rect = text.get_rect(center=(screen.get_width() // 2, (screen.get_height() // 2)))
+    else:
+        text = font.render("Press any key to continue!", True, (255, 255, 255))
+        text_rect = text.get_rect(center=(screen.get_width() // 2, (screen.get_height() // 2) - 120))
+
+    font = pygame.font.Font(None, 30)  # Smaller font size
+    if wave_number > 1:
+        # Render wrapped text for information
+        message = info[wave_number - 2]
+        draw_text_wrapped(message, font, (255, 255, 255), screen, screen.get_width() // 2, screen.get_height() // 2 + 50, 400, 10)
+        
+        draw_health(screen, turtle, crab)
+        draw_coins(screen)
+        draw_wave(screen)
+
     screen.blit(text, text_rect)
     pygame.display.flip()
 
@@ -120,11 +177,6 @@ def draw_wave(screen):
 
     screen.blit(wave_text, (text_x, text_y))  # Draw the coin count
 
-wave_number = 1  # Start at wave 1
-plastics_to_spawn = 4  # First wave starts with 4 plastics
-plastics_spawned = 0  # Track how many plastics have been spawned in the current wave
-total_plastic_spawned = 0  # Track total plastics spawned
-
 def run_level():
     
     pygame.mouse.set_visible(True)  # Hide the cursor
@@ -162,8 +214,6 @@ def run_level():
 
     current_time = pygame.time.get_ticks()
     number_of_plastics_that_should_have_been_spawned = calc_plastic_total_spawned(wave_number)
-    print(len(plastic_group), plastics_to_spawn, plastics_spawned, total_plastic_spawned, number_of_plastics_that_should_have_been_spawned)
-    # Spawn plastics only if we haven't spawned enough for this wave
     if plastics_spawned < plastics_to_spawn and current_time - last_plastic_spawn >= PLASTIC_SPAWN_TIME:
         plastic_group.add(Plastic(crab, turtle, screen))  
         total_plastic_spawned += 1
@@ -175,6 +225,7 @@ def run_level():
         wave_number += 1  # Increase wave number
         plastics_spawned = 0  # Reset the counter
         plastics_to_spawn = 4 + (wave_number - 1) * 3  # Increase difficulty
+        game_state = START_SCREEN
 
     # Update Sprites
     turtle.update(screen)   # Turtle follows mouse
