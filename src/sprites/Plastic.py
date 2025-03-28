@@ -2,7 +2,7 @@ import pygame
 import random
 
 class Plastic(pygame.sprite.Sprite):
-    def __init__(self, crab, turtle, screen):
+    def __init__(self, crab, turtle, screen, wave_number):
         super().__init__()
 
         # Load the plastic image
@@ -24,10 +24,11 @@ class Plastic(pygame.sprite.Sprite):
         self.update_hitbox()  # Ensure it starts centered
 
         # Randomly choose between Crab or Turtle as the target
-        self.target = random.choice([crab, turtle])
+        self.target = crab
 
-        self.speed = random.randint(1, 3) * 0.5  # Different speeds for variety
-        self.health = 20
+        self.speed = random.randint(1, 3) * (wave_number / 7)  # Different speeds for 
+        if self.speed < 1: self.speed = 1
+        self.health = 100
         
         # Blinking effect variables
         self.blinking = False  # Whether the plastic is blinking
@@ -76,10 +77,15 @@ class Plastic(pygame.sprite.Sprite):
         # Ensure direction is valid and normalized
         if direction.length() > 1:
             direction = direction.normalize()
+        else:
+            # Apply a small nudge towards the target to prevent getting stuck
+            direction = pygame.Vector2(random.choice([-1, 1]), random.choice([-1, 1])).normalize()
 
-            # Move the plastic
-            self.rect.x += direction.x * self.speed
-            self.rect.y += direction.y * self.speed
+        # Move the plastic
+        self.rect.x += direction[0] * self.speed
+        self.rect.y += direction[1] * self.speed
+
+        pygame.draw.rect(screen, (255, 0, 0), self.hitbox, 2) 
 
         # Update hitbox
         self.update_hitbox()

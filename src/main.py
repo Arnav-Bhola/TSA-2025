@@ -3,6 +3,7 @@ from sprites.Turtle import Turtle
 from sprites.Crab import Crab
 from sprites.Plastic import Plastic
 from sprites.CrossHair import Crosshair
+from sprites.Shop import Shop
 
 # Initialize Pygame
 pygame.init()
@@ -13,11 +14,29 @@ clock = pygame.time.Clock()
 START_SCREEN = "start"
 PLAYING = "playing"
 GAME_OVER = "game_over"
+SHOP_SCREEN = "shop"
 
 game_state = START_SCREEN  # Start at the menu
 
 # Create Sprites
 crosshair = Crosshair()
+
+shop = Shop(
+    screen,
+    pygame.font.Font(None, 30),
+    {
+        "health_potion": {"price": 5, "effect": "restores 1 HP"},
+        "damage_boost": {"price": 10, "effect": "increases bullet damage"},
+        "extra_life": {"price": 20, "effect": "adds 1 extra life"}
+    },
+    pygame.Rect(
+        screen.get_width() // 2 - 300,  # Center horizontally
+        0,                              # Temporary y (will be set by class)
+        600,                            # Width
+        400                             # Height
+    )
+)
+
 
 # Create Players
 turtle = Turtle(crosshair)
@@ -178,9 +197,6 @@ def draw_wave(screen):
     screen.blit(wave_text, (text_x, text_y))  # Draw the coin count
 
 def run_level():
-    
-    pygame.mouse.set_visible(True)  # Hide the cursor
-
     """Main gameplay loop."""
     global game_state, last_plastic_spawn, coin_count, wave_number, plastics_spawned, plastics_to_spawn, total_plastic_spawned
     screen.fill((0, 0, 50))  # Deep ocean background
@@ -195,7 +211,7 @@ def run_level():
 
         # Shoot bullet when left mouse button is clicked
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            turtle.shoot(turtle_bullets, pygame.mouse.get_pos())  # Pass target position
+            turtle.shoot(turtle_bullets, pygame.mouse.get_pos())
 
         # Shoot bullet when spacebar is pressed
         if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
@@ -215,7 +231,7 @@ def run_level():
     current_time = pygame.time.get_ticks()
     number_of_plastics_that_should_have_been_spawned = calc_plastic_total_spawned(wave_number)
     if plastics_spawned < plastics_to_spawn and current_time - last_plastic_spawn >= PLASTIC_SPAWN_TIME:
-        plastic_group.add(Plastic(crab, turtle, screen))  
+        plastic_group.add(Plastic(crab, turtle, screen, wave_number))  
         total_plastic_spawned += 1
         plastics_spawned += 1  # Increment count
         last_plastic_spawn = current_time  # Reset timer
@@ -229,7 +245,7 @@ def run_level():
 
     # Update Sprites
     turtle.update(screen)   # Turtle follows mouse
-    crab.update(keys, screen)  # Crab moves with WASDxs
+    crab.update(keys, screen)  # Crab moves with WASD
     turtle_bullets.update(screen)
     crab_bullets.update(screen)
     plastic_group.update(screen)
@@ -240,7 +256,7 @@ def run_level():
         for plastic in plastic_group:
             if bullet.rect.colliderect(plastic.rect):  # Check if the bullet's hitbox intersects with the plastic's hitbox
                 bullet.kill()  # Remove the bullet
-                if plastic.take_damage():
+                if plastic.take_damage(100):
                     coin_count += 1
 
     # Collision Handling - Crab Bullets with Plastics using Rect.colliderect
@@ -248,7 +264,7 @@ def run_level():
         for plastic in plastic_group:
             if bullet.rect.colliderect(plastic.rect):  # Check if the bullet's hitbox intersects with the plastic's hitbox
                 bullet.kill()  # Remove the bullet
-                if plastic.take_damage():
+                if plastic.take_damage(50):
                     coin_count += 1
 
     crab.check_bullet_collision(plastic_group)
@@ -274,40 +290,59 @@ def run_level():
 # Main Game Loop
 running = True
 while running:
-    if game_state == START_SCREEN:
-        pygame.mouse.set_visible(True)  # Hide the cursor
-
+    # Update crosshair in all game states
+    
+    if game_state == START_SCREEN:       
         draw_start_screen()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN:
-                game_state = PLAYING  # Start game
+                game_state = PLAYING
+    
+    elif game_state == SHOP_SCREEN:        
+        # Draw game elements
+        screen.fill((0, 0, 50))
+        turtle_bullets.draw(screen)
+        crab_bullets.draw(screen)
+        player_sprites.draw(screen)
+        plastic_group.draw(screen)
+        draw_health(screen, turtle, crab)
+        draw_coins(screen)
+        draw_wave(screen)
+        
+        # Draw shop and crosshair
+        shop.update(coin_count)
+        screen.blit(shop.image, shop.rect.topleft)
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            shop.handle_input(event)
+        
+        if not shop.is_open and not shop.is_animating:
+            game_state = PLAYING
+
 
     elif game_state == PLAYING:
         running = run_level()
+        
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_p]:
+            game_state = SHOP_SCREEN
+            shop.toggle()
+        
 
-    elif game_state == GAME_OVER:
-        pygame.mouse.set_visible(True)  # Hide the cursor
-
+    elif game_state == GAME_OVER:        
         draw_game_over()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
-                wave_number = 1  # Restart from wave 1
-                plastics_to_spawn = 4  # Reset initial wave size
-                plastics_spawned = 0  # Reset spawn counter
-                # Reset game variables
-                turtle.health = 3
-                crab.health = 3
-                turtle.rect.topleft = (100, 300)  # Reset positions if necessary
-                crab.rect.topleft = (600, 300)
-
-                coin_count = 0  # Reset coins
-                plastic_group.empty()  # Clear plastics
-
-                game_state = PLAYING  # Restart game
+                # Reset game variables...
+                game_state = PLAYING
+        
+        
 
     pygame.display.flip()
     clock.tick(60)
