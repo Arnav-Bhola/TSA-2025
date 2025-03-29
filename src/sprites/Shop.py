@@ -24,13 +24,13 @@ class Shop(pygame.sprite.Sprite):
                 "price": 20,
                 "effect": "Add +1 health to Turtle",
                 "action": self.upgrade_turtle_health,
-                "icon": "turtle_health"  # Will look for assets/shop/turtle_health.png
+                "icon": "turtle_health"
             },
             "crab_health": {
                 "price": 20,
                 "effect": "Add +1 health to Crab",
                 "action": self.upgrade_crab_health,
-                "icon": "crab_health"  # Will look for assets/shop/crab_health.png
+                "icon": "crab_health"
             }
         }
         
@@ -115,7 +115,126 @@ class Shop(pygame.sprite.Sprite):
         icon.blit(text, (self.icon_size//2 - text.get_width()//2, self.icon_size//2 - text.get_height()//2))
         return icon
     
-    # [Keep all other methods (draw, handle_input, etc.) the same as in your original code]
+    def _wrap_text(self, text, font, max_width):
+        """Wrap text to fit within max_width"""
+        words = text.split(' ')
+        lines = []
+        current_line = []
+        
+        for word in words:
+            test_line = ' '.join(current_line + [word])
+            if font.size(test_line)[0] <= max_width:
+                current_line.append(word)
+            else:
+                lines.append(' '.join(current_line))
+                current_line = [word]
+        
+        if current_line:
+            lines.append(' '.join(current_line))
+        return lines
+    
+    def draw(self, coin_count):
+        self.image.fill((0,0,0,0))
+        
+        # Background
+        bg = pygame.Surface(self.rect.size, pygame.SRCALPHA)
+        pygame.draw.rect(bg, (30,30,30,200), bg.get_rect(), border_radius=20)
+        self.image.blit(bg, (0,0))
+        
+        # Title
+        title = self.title_font.render("UPGRADE SHOP", True, (255,255,255))
+        self.image.blit(title, (self.rect.width//2 - title.get_width()//2, 20))
+        
+        # Coins
+        coins_text = self.font.render(f"Coins: {coin_count}", True, (255,255,0))
+        self.image.blit(coins_text, (self.rect.width - coins_text.get_width() - 20, 20))
+        
+        # Calculate items area
+        total_width = (self.items_per_page * self.icon_size) + ((self.items_per_page - 1) * self.icon_padding)
+        start_x = (self.rect.width - total_width) // 2
+        start_y = 80
+        
+        # Get current page items
+        item_keys = list(self.items.keys())
+        page_items = item_keys[self.current_page*self.items_per_page : (self.current_page+1)*self.items_per_page]
+        
+        # Draw items
+        mouse_pos = pygame.mouse.get_pos()
+        shop_pos = (self.rect.x, self.rect.y)
+        self.hovered_item = None
+        
+        for i, item_key in enumerate(page_items):
+            item = self.items[item_key]
+            x = start_x + i * (self.icon_size + self.icon_padding)
+            y = start_y
+            
+            # Hover detection
+            icon_rect = pygame.Rect(shop_pos[0]+x, shop_pos[1]+y, self.icon_size, self.icon_size)
+            if icon_rect.collidepoint(mouse_pos):
+                self.hovered_item = item_key
+                # Glow effect
+                glow = pygame.Surface((self.icon_size+10, self.icon_size+10), pygame.SRCALPHA)
+                pygame.draw.rect(glow, (255,255,255,50), glow.get_rect(), border_radius=15)
+                self.image.blit(glow, (x-5,y-5))
+            
+            # Draw icon
+            self.image.blit(self.icons[item_key], (x,y))
+            
+            # Price
+            price_text = self.font.render(f"${item['price']}", True, (255,255,255))
+            self.image.blit(price_text, (x + self.icon_size//2 - price_text.get_width()//2, y + self.icon_size + 5))
+        
+        # Description panel
+        if self.hovered_item:
+            item = self.items[self.hovered_item]
+            desc_width = self.rect.width - 40
+            desc_height = 80
+            desc_x = 20
+            desc_y = start_y + self.icon_size + 30
+            
+            # Background
+            desc_bg = pygame.Surface((desc_width, desc_height), pygame.SRCALPHA)
+            pygame.draw.rect(desc_bg, (50,50,50,150), desc_bg.get_rect(), border_radius=10)
+            self.image.blit(desc_bg, (desc_x, desc_y))
+            
+            # Item name
+            name = self.hovered_item.replace("_", " ").title()
+            name_text = self.title_font.render(name, True, (255,255,255))
+            self.image.blit(name_text, (desc_x + desc_width//2 - name_text.get_width()//2, desc_y + 10))
+            
+            # Description
+            desc_lines = self._wrap_text(item['effect'], self.desc_font, desc_width - 20)
+            for i, line in enumerate(desc_lines):
+                desc_text = self.desc_font.render(line, True, (220,220,220))
+                self.image.blit(desc_text, (desc_x + desc_width//2 - desc_text.get_width()//2, desc_y + 40 + i * 20))
+        
+        # Navigation arrows
+        self._draw_arrows(mouse_pos, shop_pos)
+    
+    def _draw_arrows(self, mouse_pos, shop_pos):
+        """Draw and handle navigation arrows"""
+        # Left arrow
+        left_arrow = self.arrow_left.copy()
+        if self.arrow_rect_left.move(shop_pos).collidepoint(mouse_pos):
+            self.hovering_left = True
+            left_arrow.fill((255,255,255,150), special_flags=pygame.BLEND_RGBA_MULT)
+        else:
+            self.hovering_left = False
+        
+        # Right arrow
+        right_arrow = self.arrow_right.copy()
+        if self.arrow_rect_right.move(shop_pos).collidepoint(mouse_pos):
+            self.hovering_right = True
+            right_arrow.fill((255,255,255,150), special_flags=pygame.BLEND_RGBA_MULT)
+        else:
+            self.hovering_right = False
+        
+        # Only show arrows if there are multiple pages
+        if self.total_pages > 1:
+            if self.current_page > 0:
+                self.image.blit(left_arrow, self.arrow_rect_left)
+            if self.current_page < self.total_pages - 1:
+                self.image.blit(right_arrow, self.arrow_rect_right)
     
     def handle_input(self, event, coin_count):
         """Handle shop input and return coins spent"""
@@ -147,3 +266,23 @@ class Shop(pygame.sprite.Sprite):
                 coins_spent = item["action"](coin_count)
         
         return coins_spent
+    
+    def toggle(self):
+        if not self.is_animating:
+            self.is_open = not self.is_open
+            self.is_animating = True
+    
+    def update_animation(self):
+        if self.is_animating:
+            if self.is_open:
+                self.rect.y = max(self.shown_y, self.rect.y - self.animation_speed)
+                if self.rect.y == self.shown_y:
+                    self.is_animating = False
+            else:
+                self.rect.y = min(self.hidden_y, self.rect.y + self.animation_speed)
+                if self.rect.y == self.hidden_y:
+                    self.is_animating = False
+    
+    def update(self, coin_count):
+        self.update_animation()
+        self.draw(coin_count)

@@ -21,90 +21,88 @@ game_state = START_SCREEN  # Start at the menu
 # Create Sprites
 crosshair = Crosshair()
 
-shop = Shop(
-    screen,
-    pygame.font.Font(None, 30),
-    {
-        "health_potion": {"price": 5, "effect": "restores 1 HP"},
-        "damage_boost": {"price": 10, "effect": "increases bullet damage"},
-        "extra_life": {"price": 20, "effect": "adds 1 extra life"}
-    },
-    pygame.Rect(
-        screen.get_width() // 2 - 300,  # Center horizontally
-        0,                              # Temporary y (will be set by class)
-        600,                            # Width
-        400                             # Height
-    )
-)
-
-
 # Create Players
 turtle = Turtle(crosshair)
 crab = Crab()
 
-# Create a sprite group for multiple characters
+# Initialize Shop
+shop_font = pygame.font.Font(None, 30)
+shop = Shop(
+    screen,
+    shop_font,
+    turtle,
+    crab,
+    pygame.Rect(
+        screen.get_width() // 2 - 300,  # Center horizontally
+        screen.get_height(),            # Start off-screen (will be animated in)
+        600,                           # Width
+        400                            # Height
+    )
+)
+
+# Create sprite groups
 player_sprites = pygame.sprite.Group(turtle, crab)
 turtle_bullets = pygame.sprite.Group()
 crab_bullets = pygame.sprite.Group()
 crosshair_group = pygame.sprite.Group(crosshair)
-
-# Create plastic sprite group
 plastic_group = pygame.sprite.Group()
+
+# Game variables
 last_plastic_spawn = pygame.time.get_ticks()
 PLASTIC_SPAWN_TIME = 1000
+coin_count = 100  # Starting coins
+wave_number = 1
+plastics_to_spawn = 4
+plastics_spawned = 0
+total_plastic_spawned = 0
 
-# Coin System
-coin_count = 0  # Starting coins
-coin_image = pygame.image.load("assets/images/coin.png").convert_alpha()  # Load coin image
-coin_image = pygame.transform.scale(coin_image, (30, 30))  # Scale the coin image
+# Load coin image
+try:
+    coin_image = pygame.image.load("assets/images/coin.png").convert_alpha()
+    coin_image = pygame.transform.scale(coin_image, (30, 30))
+except:
+    # Fallback if coin image is missing
+    coin_image = pygame.Surface((30, 30), pygame.SRCALPHA)
+    pygame.draw.circle(coin_image, (255, 215, 0), (15, 15), 15)
 
-wave_number = 1  # Start at wave 1
-plastics_to_spawn = 4  # First wave starts with 4 plastics
-plastics_spawned = 0  # Track how many plastics have been spawned in the current wave
-total_plastic_spawned = 0  # Track total plastics spawned
-
+# Game information
 info = [
-    "important information about the ocean: The Pacific Ocean is the largest ocean. The ocean contains more than 97% of Earth's water. Over 80% of ocean life remains unexplored.", 
-    "plastic kills turtles :(",
-    "plastic is not cool"
+    "Important information about the ocean: The Pacific Ocean is the largest ocean. The ocean contains more than 97% of Earth's water. Over 80% of ocean life remains unexplored.", 
+    "Plastic kills turtles :(",
+    "Plastic is not cool"
 ]
 
 def draw_text_wrapped(text, font, color, surface, x, y, max_width, line_gap):
     """Renders the text with word wrapping within a maximum width, centers each line, and adds space between lines."""
-    words = text.split(' ')  # Split the text into words
-    lines = []  # List to store lines of text
-    current_line = ""  # Current line being constructed
+    words = text.split(' ')
+    lines = []
+    current_line = ""
 
-    # Go through each word and add it to the current line
     for word in words:
-        # If adding this word would exceed the max width, start a new line
         test_line = current_line + word + " "
         test_surface = font.render(test_line, True, color)
         if test_surface.get_width() > max_width:
             if current_line:
-                lines.append(current_line)  # Add the current line to the list
-            current_line = word + " "  # Start a new line with the current word
+                lines.append(current_line)
+            current_line = word + " "
         else:
-            current_line = test_line  # Add the word to the current line
+            current_line = test_line
 
-    # Add the last line
     if current_line:
         lines.append(current_line)
 
-    # Now render the lines on the screen
     y_offset = y
     for line in lines:
         line_surface = font.render(line, True, color)
-        line_x = x - line_surface.get_width() // 2  # Center each line
+        line_x = x - line_surface.get_width() // 2
         surface.blit(line_surface, (line_x, y_offset))
-        y_offset += line_surface.get_height() + line_gap  # Add gap between lines
-
+        y_offset += line_surface.get_height() + line_gap
 
 def draw_start_screen():
     """Draws the start screen with centered instructions."""
     screen.fill((0, 0, 50))  # Deep ocean background
 
-    font = pygame.font.Font(None, 45)  # Smaller font size
+    font = pygame.font.Font(None, 45)
     
     if wave_number == 1:
         text = font.render("Press any key to start!", True, (255, 255, 255))
@@ -113,9 +111,8 @@ def draw_start_screen():
         text = font.render("Press any key to continue!", True, (255, 255, 255))
         text_rect = text.get_rect(center=(screen.get_width() // 2, (screen.get_height() // 2) - 120))
 
-    font = pygame.font.Font(None, 30)  # Smaller font size
+    font = pygame.font.Font(None, 30)
     if wave_number > 1:
-        # Render wrapped text for information
         message = info[wave_number - 2]
         draw_text_wrapped(message, font, (255, 255, 255), screen, screen.get_width() // 2, screen.get_height() // 2 + 50, 400, 10)
         
@@ -126,7 +123,6 @@ def draw_start_screen():
     screen.blit(text, text_rect)
     pygame.display.flip()
 
-
 def draw_game_over():
     """Draws the game over screen with centered text."""
     screen.fill((50, 0, 0))  # Dark red background
@@ -135,7 +131,6 @@ def draw_game_over():
     game_over_text = font.render("Game Over!", True, (255, 255, 255))
     restart_text = font.render("Press R to Restart", True, (255, 255, 255))
 
-    # Get center positions
     game_over_rect = game_over_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 - 25))
     restart_rect = restart_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 25))
 
@@ -148,76 +143,48 @@ def draw_health(screen, turtle, crab):
     font = pygame.font.Font(None, 30)
 
     def draw_character_health(character, x, y):
-        """Helper function to draw health with vertical centering."""
-        image = pygame.transform.scale(character.original_image, (30, 30))  # Resize the image
-        screen.blit(image, (x, y))  # Draw the character image
-
+        image = pygame.transform.scale(character.original_image, (30, 30))
+        screen.blit(image, (x, y))
         health_text = font.render(f"{character.health}", True, (255, 255, 255))
+        text_x = x + image.get_width() + 10
+        text_y = y + (image.get_height() - health_text.get_height()) // 2
+        screen.blit(health_text, (text_x, text_y))
 
-        # Get text size for alignment
-        text_width, text_height = health_text.get_size()
-        text_x = x + image.get_width() + 10  # Place text slightly to the right
-        text_y = y + (image.get_height() - text_height) // 2  # Center text vertically
-
-        screen.blit(health_text, (text_x, text_y))  # Draw the health text
-
-    # Draw health for turtle and crab
-    draw_character_health(turtle, 10, 10)  # Turtle at (10, 10)
-    draw_character_health(crab, 10, 50)  # Crab at (10, 50)
+    draw_character_health(turtle, 10, 10)
+    draw_character_health(crab, 10, 50)
 
 def draw_coins(screen):
-    """Draws the coin count on the screen with leading zeros, properly aligned with the icon."""
-    global coin_count
-    coin_x, coin_y = 700, 10  # Position of the coin image
-    screen.blit(coin_image, (coin_x, coin_y))  # Draw the coin icon
-
+    coin_x, coin_y = 700, 10
+    screen.blit(coin_image, (coin_x, coin_y))
     font = pygame.font.Font(None, 30)
     coin_text = font.render(f"{coin_count:04d}", True, (255, 255, 255))
-
-    # Get text size to adjust alignment
-    text_width, text_height = coin_text.get_size()
-    text_x = coin_x + coin_image.get_width() + 5  # Position it slightly right of the coin
-    text_y = coin_y + (coin_image.get_height() - text_height) // 2  # Center it vertically
-
-    screen.blit(coin_text, (text_x, text_y))  # Draw the coin count
+    text_x = coin_x + coin_image.get_width() + 5
+    text_y = coin_y + (coin_image.get_height() - coin_text.get_height()) // 2
+    screen.blit(coin_text, (text_x, text_y))
 
 def draw_wave(screen):
-    """Draws the wave number on the screen with leading zeros, properly aligned with the icon."""
-    global wave_number
-    coin_x, coin_y = 700, 10  # Position of the wave icon
-
     font = pygame.font.Font(None, 30)
     wave_text = font.render(f"Wave: {wave_number:02d}", True, (255, 255, 255))
-
-    # Get text size to adjust alignment
-    text_width, text_height = wave_text.get_size()
-    text_x = 700  # Position it slightly right of the coin
-    text_y = 50  # Center it vertically
-
-    screen.blit(wave_text, (text_x, text_y))  # Draw the coin count
+    screen.blit(wave_text, (700, 50))
 
 def reset_game():
     global game_state, coin_count, wave_number, plastics_spawned, plastics_to_spawn, total_plastic_spawned, last_plastic_spawn
     
-    # Reset game state variables
     game_state = PLAYING
-    coin_count = 0
+    coin_count = 100  # Reset to starting coins
     wave_number = 1
     plastics_spawned = 0
     plastics_to_spawn = 4
     total_plastic_spawned = 0
     last_plastic_spawn = pygame.time.get_ticks()
     
-    # Clear all sprite groups
     turtle_bullets.empty()
     crab_bullets.empty()
     plastic_group.empty()
     
-    # Reset players
     turtle.health = 3
     crab.health = 3
     
-    # Reset positions
     turtle.pos = pygame.Vector2(400, 300)
     crab.pos = pygame.Vector2(200, 200)
     turtle.rect.center = turtle.pos
@@ -225,90 +192,83 @@ def reset_game():
     turtle.update_hitbox()
     crab.update_hitbox()
     
-    # Reset crosshair
     crosshair.pos = pygame.Vector2(screen.get_width() // 2, screen.get_height() // 2)
     crosshair.rect.center = crosshair.pos
 
-def run_level():
-    """Main gameplay loop."""
-    global game_state, last_plastic_spawn, coin_count, wave_number, plastics_spawned, plastics_to_spawn, total_plastic_spawned
-    screen.fill((0, 0, 50))  # Deep ocean background
+def calc_plastic_total_spawned(wave_number):
+    sum = 0
+    for i in range(wave_number):
+        sum += i
+    sum *= 3
+    sum += wave_number * 4
+    return sum
 
-    # Event Handling
+def run_level():
+    global game_state, last_plastic_spawn, coin_count, wave_number, plastics_spawned, plastics_to_spawn, total_plastic_spawned
+    
+    screen.fill((0, 0, 50))
+    
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             return False
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:  # Quit to menu
+            if event.key == pygame.K_ESCAPE:
                 game_state = START_SCREEN
+            elif event.key == pygame.K_p:  # Open shop with P key
+                game_state = SHOP_SCREEN
+                shop.toggle()
 
-        # Shoot bullet when left mouse button is clicked
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             turtle.shoot(turtle_bullets, pygame.mouse.get_pos())
 
-        # Shoot bullet when spacebar is pressed
         if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
             crab.shoot(crab_bullets)
 
-    # Get Key Presses
     keys = pygame.key.get_pressed()
     
-    def calc_plastic_total_spawned(wave_number):
-        sum = 0
-        for i in range(wave_number):
-            sum += i
-        sum *= 3
-        sum += wave_number*4
-        return sum
-
     current_time = pygame.time.get_ticks()
     number_of_plastics_that_should_have_been_spawned = calc_plastic_total_spawned(wave_number)
+    
     if plastics_spawned < plastics_to_spawn and current_time - last_plastic_spawn >= PLASTIC_SPAWN_TIME:
         plastic_group.add(Plastic(crab, turtle, screen, wave_number))  
         total_plastic_spawned += 1
-        plastics_spawned += 1  # Increment count
-        last_plastic_spawn = current_time  # Reset timer
+        plastics_spawned += 1
+        last_plastic_spawn = current_time
 
-    # Check if all plastics are gone (wave completed)
     if len(plastic_group) == 0 and total_plastic_spawned == number_of_plastics_that_should_have_been_spawned:
-        wave_number += 1  # Increase wave number
-        plastics_spawned = 0  # Reset the counter
-        plastics_to_spawn = 4 + (wave_number - 1) * 3  # Increase difficulty
+        wave_number += 1
+        plastics_spawned = 0
+        plastics_to_spawn = 4 + (wave_number - 1) * 3
         game_state = START_SCREEN
 
-    # Update Sprites
-    turtle.update(screen)   # Turtle follows mouse
-    crab.update(keys, screen)  # Crab moves with WASD
+    turtle.update(screen)
+    crab.update(keys, screen)
     turtle_bullets.update(screen)
     crab_bullets.update(screen)
     plastic_group.update(screen)
     crosshair_group.update()
     
-    # Collision Handling - Turtle Bullets with Plastics using Rect.colliderect
     for bullet in turtle_bullets:
         for plastic in plastic_group:
-            if bullet.rect.colliderect(plastic.rect):  # Check if the bullet's hitbox intersects with the plastic's hitbox
-                bullet.kill()  # Remove the bullet
+            if bullet.rect.colliderect(plastic.rect):
+                bullet.kill()
                 if plastic.take_damage(100):
                     coin_count += 1
 
-    # Collision Handling - Crab Bullets with Plastics using Rect.colliderect
     for bullet in crab_bullets:
         for plastic in plastic_group:
-            if bullet.rect.colliderect(plastic.rect):  # Check if the bullet's hitbox intersects with the plastic's hitbox
-                bullet.kill()  # Remove the bullet
+            if bullet.rect.colliderect(plastic.rect):
+                bullet.kill()
                 if plastic.take_damage(50):
                     coin_count += 1
 
     crab.check_bullet_collision(plastic_group)
     turtle.check_bullet_collision(plastic_group)
 
-    # Check if the game is over
     if turtle.health <= 0 or crab.health <= 0:
         game_state = GAME_OVER
-        return True  # Keep the loop running so the game over screen can be displayed
+        return True
 
-    # Draw Sprites
     turtle_bullets.draw(screen) 
     crab_bullets.draw(screen) 
     player_sprites.draw(screen)
@@ -323,8 +283,6 @@ def run_level():
 # Main Game Loop
 running = True
 while running:
-    # Update crosshair in all game states
-    
     if game_state == START_SCREEN:       
         draw_start_screen()
         for event in pygame.event.get():
@@ -333,8 +291,7 @@ while running:
             if event.type == pygame.KEYDOWN:
                 game_state = PLAYING
     
-    elif game_state == SHOP_SCREEN:        
-        # Draw game elements
+    elif game_state == SHOP_SCREEN:
         screen.fill((0, 0, 50))
         turtle_bullets.draw(screen)
         crab_bullets.draw(screen)
@@ -342,32 +299,24 @@ while running:
         plastic_group.draw(screen)
         draw_health(screen, turtle, crab)
         draw_coins(screen)
-        
         draw_wave(screen)
         
-        # Draw shop and crosshair
         shop.update(coin_count)
         screen.blit(shop.image, shop.rect.topleft)
         
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            shop.handle_input(event)
+            coins_spent = shop.handle_input(event, coin_count)
+            coin_count -= coins_spent
         
         if not shop.is_open and not shop.is_animating:
             game_state = PLAYING
 
-
     elif game_state == PLAYING:
         running = run_level()
-        
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_p]:
-            game_state = SHOP_SCREEN
-            shop.toggle()
-        
 
-    elif game_state == GAME_OVER:        
+    elif game_state == GAME_OVER:
         draw_game_over()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -376,8 +325,6 @@ while running:
                 reset_game()
                 game_state = PLAYING
         
-        
-
     pygame.display.flip()
     clock.tick(60)
 
