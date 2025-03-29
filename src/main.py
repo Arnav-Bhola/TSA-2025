@@ -342,6 +342,7 @@ while running:
         plastic_group.draw(screen)
         draw_health(screen, turtle, crab)
         draw_coins(screen)
+        
         draw_wave(screen)
         
         # Draw shop and crosshair
