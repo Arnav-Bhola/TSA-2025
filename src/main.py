@@ -19,7 +19,7 @@ GAME_OVER = "game_over"
 SHOP_SCREEN = "shop"
 
 # Boss wave configuration - CHANGE THIS TO ADJUST BOSS WAVE FREQUENCY
-BOSS_WAVE_INTERVAL = 5  # Boss appears every 3 waves (change to 5 if you want)
+BOSS_WAVE_INTERVAL = 3  # Boss appears every 3 waves (change to 5 if you want)
 
 game_state = START_SCREEN  # Start at the menu
 
