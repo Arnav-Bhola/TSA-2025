@@ -113,7 +113,7 @@ class PlasticBoss(Plastic):
         self.health = 100 + (wave_number * 50)  # Boss has more health
         self.size = 100  # Bigger size for boss
         self.spawn_timer = 0
-        self.spawn_interval = 3000  # Spawn minions every 3 seconds
+        self.spawn_interval = 5000  # Spawn minions every 3 seconds
         
         # Create boss image
         self.image = pygame.image.load("assets/images/Plastic.png").convert_alpha()
