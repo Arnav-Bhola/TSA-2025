@@ -196,6 +196,39 @@ def draw_wave(screen):
 
     screen.blit(wave_text, (text_x, text_y))  # Draw the coin count
 
+def reset_game():
+    global game_state, coin_count, wave_number, plastics_spawned, plastics_to_spawn, total_plastic_spawned, last_plastic_spawn
+    
+    # Reset game state variables
+    game_state = PLAYING
+    coin_count = 0
+    wave_number = 1
+    plastics_spawned = 0
+    plastics_to_spawn = 4
+    total_plastic_spawned = 0
+    last_plastic_spawn = pygame.time.get_ticks()
+    
+    # Clear all sprite groups
+    turtle_bullets.empty()
+    crab_bullets.empty()
+    plastic_group.empty()
+    
+    # Reset players
+    turtle.health = 3
+    crab.health = 3
+    
+    # Reset positions
+    turtle.pos = pygame.Vector2(400, 300)
+    crab.pos = pygame.Vector2(200, 200)
+    turtle.rect.center = turtle.pos
+    crab.rect.center = crab.pos
+    turtle.update_hitbox()
+    crab.update_hitbox()
+    
+    # Reset crosshair
+    crosshair.pos = pygame.Vector2(screen.get_width() // 2, screen.get_height() // 2)
+    crosshair.rect.center = crosshair.pos
+
 def run_level():
     """Main gameplay loop."""
     global game_state, last_plastic_spawn, coin_count, wave_number, plastics_spawned, plastics_to_spawn, total_plastic_spawned
@@ -339,7 +372,7 @@ while running:
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
-                # Reset game variables...
+                reset_game()
                 game_state = PLAYING
         
         
