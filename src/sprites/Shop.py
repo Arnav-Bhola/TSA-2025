@@ -24,21 +24,21 @@ class Shop(pygame.sprite.Sprite):
                 "price": 20,
                 "effect": "Add +1 health to Turtle",
                 "action": self.upgrade_turtle_health,
-                "icon": os.path.join("assets", "images", "upgrades", "upgrade1.png"),
+                "icon": os.path.join("assets", "images", "crab.png"),
                 "purchased": False
             },
             "crab_health": {
                 "price": 20,
                 "effect": "Add +1 health to Crab",
                 "action": self.upgrade_crab_health,
-                "icon": os.path.join("assets", "images", "upgrades", "upgrade2.png"),
+                "icon": os.path.join("assets", "images", "turtle.png"),
                 "purchased": False
             },
             "crab_damage": {
                 "price": 30,
                 "effect": "Double Crab's damage (One-time)",
                 "action": self.upgrade_crab_damage,
-                "icon": os.path.join("assets", "images", "upgrades", "upgrade3.png"),
+                "icon": os.path.join("assets", "images","crab_scute.png"),
                 "purchased": False
             }
         }
