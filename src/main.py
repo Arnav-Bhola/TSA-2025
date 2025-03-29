@@ -55,13 +55,13 @@ plastic_group = pygame.sprite.Group()
 # Game variables
 last_plastic_spawn = pygame.time.get_ticks()
 PLASTIC_SPAWN_TIME = 1000
-coin_count = 100  # Starting coins
+coin_count = 200  # Starting coins
 wave_number = 1
 plastics_to_spawn = 4
 plastics_spawned = 0
 total_plastic_spawned = 0
 
-# Load coin image
+# Load images
 try:
     coin_image = pygame.image.load("assets/images/coin.png").convert_alpha()
     coin_image = pygame.transform.scale(coin_image, (30, 30))
@@ -69,6 +69,14 @@ except:
     # Fallback if coin image is missing
     coin_image = pygame.Surface((30, 30), pygame.SRCALPHA)
     pygame.draw.circle(coin_image, (255, 215, 0), (15, 15), 15)
+
+# Load background image
+try:
+    background_image = pygame.image.load("assets/images/ocean.jpg").convert()
+    background_image = pygame.transform.scale(background_image, (800, 600))
+except:
+    background_image = None
+    print("Could not load ocean.jpg - falling back to solid color background")
 
 # Game information
 info = [
@@ -78,10 +86,7 @@ info = [
 ]
 
 def is_boss_wave(wave_number):
-    return wave_number % BOSS_WAVE_INTERVAL == 0  # Uses the constant we defined at top
-
-# [Rest of the functions remain exactly the same as in the previous version...]
-# Only the is_boss_wave() function was modified to use BOSS_WAVE_INTERVAL
+    return wave_number % BOSS_WAVE_INTERVAL == 0
 
 def draw_text_wrapped(text, font, color, surface, x, y, max_width, line_gap):
     """Renders the text with word wrapping within a maximum width, centers each line, and adds space between lines."""
@@ -111,7 +116,10 @@ def draw_text_wrapped(text, font, color, surface, x, y, max_width, line_gap):
 
 def draw_start_screen():
     """Draws the start screen with centered instructions."""
-    screen.fill((0, 0, 50))  # Deep ocean background
+    if background_image:
+        screen.blit(background_image, (0, 0))
+    else:
+        screen.fill((0, 0, 50))  # Fallback color
 
     font = pygame.font.Font(None, 45)
     
@@ -143,7 +151,11 @@ def draw_start_screen():
 
 def draw_game_over():
     """Draws the game over screen with centered text."""
-    screen.fill((50, 0, 0))  # Dark red background
+    if background_image:
+        screen.blit(background_image, (0, 0))
+    else:
+        screen.fill((50, 0, 0))  # Fallback color
+
     font = pygame.font.Font(None, 50)
 
     game_over_text = font.render("Game Over!", True, (255, 255, 255))
@@ -224,7 +236,10 @@ def calc_plastic_total_spawned(wave_number):
 def run_level():
     global game_state, last_plastic_spawn, coin_count, wave_number, plastics_spawned, plastics_to_spawn, total_plastic_spawned
     
-    screen.fill((0, 0, 50))
+    if background_image:
+        screen.blit(background_image, (0, 0))
+    else:
+        screen.fill((0, 0, 50))  # Fallback color
     
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -260,7 +275,7 @@ def run_level():
         plastics_spawned += 1
         last_plastic_spawn = current_time
 
-    # Wave completion check (boss waves require all enemies including minions to be defeated)
+    # Wave completion check
     if len(plastic_group) == 0 and total_plastic_spawned == number_of_plastics_that_should_have_been_spawned:
         wave_number += 1
         plastics_spawned = 0
@@ -279,7 +294,7 @@ def run_level():
             if bullet.rect.colliderect(plastic.rect):
                 bullet.kill()
                 if plastic.take_damage(100):
-                    coin_count += 5 if isinstance(plastic, PlasticBoss) else 1  # Boss gives more coins
+                    coin_count += 5 if isinstance(plastic, PlasticBoss) else 1
 
     for bullet in crab_bullets:
         for plastic in plastic_group:
@@ -318,7 +333,11 @@ while running:
                 game_state = PLAYING
     
     elif game_state == SHOP_SCREEN:
-        screen.fill((0, 0, 50))
+        if background_image:
+            screen.blit(background_image, (0, 0))
+        else:
+            screen.fill((0, 0, 50))  # Fallback color
+            
         turtle_bullets.draw(screen)
         crab_bullets.draw(screen)
         player_sprites.draw(screen)

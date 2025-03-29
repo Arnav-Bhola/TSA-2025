@@ -116,7 +116,7 @@ class PlasticBoss(Plastic):
         self.spawn_interval = 5000  # Spawn minions every 3 seconds
         
         # Create boss image
-        self.image = pygame.image.load("assets/images/Plastic.png").convert_alpha()
+        self.image = pygame.image.load("assets/images/monster.png").convert_alpha()
         self.image = pygame.transform.scale(self.image, (self.size, self.size))
         self.rect = self.image.get_rect()
         self.original_image = self.image.copy()

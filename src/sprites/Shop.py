@@ -18,19 +18,28 @@ class Shop(pygame.sprite.Sprite):
         self.turtle = turtle
         self.crab = crab
         
-        # Define shop items
+        # Define shop items with absolute paths
         self.items = {
             "turtle_health": {
                 "price": 20,
                 "effect": "Add +1 health to Turtle",
                 "action": self.upgrade_turtle_health,
-                "icon": "turtle_health"
+                "icon": os.path.join("assets", "images", "upgrades", "upgrade1.png"),
+                "purchased": False
             },
             "crab_health": {
                 "price": 20,
                 "effect": "Add +1 health to Crab",
                 "action": self.upgrade_crab_health,
-                "icon": "crab_health"
+                "icon": os.path.join("assets", "images", "upgrades", "upgrade2.png"),
+                "purchased": False
+            },
+            "crab_damage": {
+                "price": 30,
+                "effect": "Double Crab's damage (One-time)",
+                "action": self.upgrade_crab_damage,
+                "icon": os.path.join("assets", "images", "upgrades", "upgrade3.png"),
+                "purchased": False
             }
         }
         
@@ -78,27 +87,43 @@ class Shop(pygame.sprite.Sprite):
             return 20  # Return coins to deduct
         return 0
     
+    def upgrade_crab_damage(self, coin_count):
+        if coin_count >= 30 and not self.items["crab_damage"]["purchased"]:
+            self.crab.damage_multiplier = 2
+            self.items["crab_damage"]["purchased"] = True
+            self.items["crab_damage"]["effect"] = "Damage doubled!"  # Update description
+            return 30
+        return 0
+
     def _load_icons(self):
-        """Load all item icons from assets"""
+        """Load all item icons from assets with better error handling"""
         icons = {}
         for item_key, item in self.items.items():
             try:
-                icon_path = f"assets/shop/{item['icon']}.png"
-                icon = pygame.image.load(icon_path).convert_alpha()
-                icon = round_image(icon, 20)  # Round the corners
+                # Try loading from absolute path first
+                if os.path.exists(item["icon"]):
+                    icon = pygame.image.load(item["icon"]).convert_alpha()
+                else:
+                    # Try relative path if absolute fails
+                    icon = pygame.image.load(os.path.join(*item["icon"].split(os.sep))).convert_alpha()
+                
+                icon = round_image(icon, 20)
                 icons[item_key] = pygame.transform.scale(icon, (self.icon_size, self.icon_size))
-            except:
+            except Exception as e:
+                print(f"Failed to load icon {item['icon']}: {e}")
                 # Fallback if image missing
                 icons[item_key] = self._create_fallback_icon(item_key)
         return icons
     
     def _load_arrows(self):
         """Load navigation arrows with fallbacks"""
+        arrow_path = os.path.join("assets", "images", "upgrades")
         try:
-            left = pygame.image.load('assets/shop/arrow_left.png').convert_alpha()
-            right = pygame.image.load('assets/shop/arrow_right.png').convert_alpha()
+            left = pygame.image.load(os.path.join(arrow_path, "arrow_left.svg")).convert_alpha()
+            right = pygame.image.load(os.path.join(arrow_path, "arrow_right.svg")).convert_alpha()
             return pygame.transform.scale(left, (50, 50)), pygame.transform.scale(right, (50, 50))
-        except:
+        except Exception as e:
+            print(f"Failed to load arrows: {e}")
             # Create simple arrows if images missing
             left = pygame.Surface((50, 50), pygame.SRCALPHA)
             right = pygame.Surface((50, 50), pygame.SRCALPHA)
@@ -177,13 +202,20 @@ class Shop(pygame.sprite.Sprite):
                 pygame.draw.rect(glow, (255,255,255,50), glow.get_rect(), border_radius=15)
                 self.image.blit(glow, (x-5,y-5))
             
-            # Draw icon
-            self.image.blit(self.icons[item_key], (x,y))
+            # Draw icon (always draw, not just when hovered)
+            if item_key == "crab_damage" and item["purchased"]:
+                gray_icon = self.icons[item_key].copy()
+                gray_icon.fill((100,100,100,150), special_flags=pygame.BLEND_RGBA_MULT)
+                self.image.blit(gray_icon, (x,y))
+            else:
+                self.image.blit(self.icons[item_key], (x,y))
             
-            # Price
-            price_text = self.font.render(f"${item['price']}", True, (255,255,255))
+            # Price (show "PURCHASED" if one-time upgrade was bought)
+            if item_key == "crab_damage" and item["purchased"]:
+                price_text = self.font.render("PURCHASED", True, (100,255,100))
+            else:
+                price_text = self.font.render(f"${item['price']}", True, (255,255,255))
             self.image.blit(price_text, (x + self.icon_size//2 - price_text.get_width()//2, y + self.icon_size + 5))
-        
         # Description panel
         if self.hovered_item:
             item = self.items[self.hovered_item]
@@ -250,7 +282,9 @@ class Shop(pygame.sprite.Sprite):
             elif event.key == pygame.K_RETURN and self.hovered_item:
                 # Purchase selected item
                 item = self.items[self.hovered_item]
-                coins_spent = item["action"](coin_count)
+                # Don't allow repurchasing one-time upgrades
+                if not (self.hovered_item == "crab_damage" and item["purchased"]):
+                    coins_spent = item["action"](coin_count)
                 
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             mouse_pos = pygame.mouse.get_pos()
@@ -263,7 +297,9 @@ class Shop(pygame.sprite.Sprite):
             elif self.hovered_item:
                 # Purchase hovered item
                 item = self.items[self.hovered_item]
-                coins_spent = item["action"](coin_count)
+                # Don't allow repurchasing one-time upgrades
+                if not (self.hovered_item == "crab_damage" and item["purchased"]):
+                    coins_spent = item["action"](coin_count)
         
         return coins_spent
     
