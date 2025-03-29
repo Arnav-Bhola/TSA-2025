@@ -1,9 +1,11 @@
 import pygame
+import random
 from sprites.Turtle import Turtle
 from sprites.Crab import Crab
 from sprites.Plastic import Plastic
 from sprites.CrossHair import Crosshair
 from sprites.Shop import Shop
+from sprites.Plastic import PlasticBoss
 
 # Initialize Pygame
 pygame.init()
@@ -15,6 +17,9 @@ START_SCREEN = "start"
 PLAYING = "playing"
 GAME_OVER = "game_over"
 SHOP_SCREEN = "shop"
+
+# Boss wave configuration - CHANGE THIS TO ADJUST BOSS WAVE FREQUENCY
+BOSS_WAVE_INTERVAL = 3  # Boss appears every 3 waves (change to 5 if you want)
 
 game_state = START_SCREEN  # Start at the menu
 
@@ -72,6 +77,12 @@ info = [
     "Plastic is not cool"
 ]
 
+def is_boss_wave(wave_number):
+    return wave_number % BOSS_WAVE_INTERVAL == 0  # Uses the constant we defined at top
+
+# [Rest of the functions remain exactly the same as in the previous version...]
+# Only the is_boss_wave() function was modified to use BOSS_WAVE_INTERVAL
+
 def draw_text_wrapped(text, font, color, surface, x, y, max_width, line_gap):
     """Renders the text with word wrapping within a maximum width, centers each line, and adds space between lines."""
     words = text.split(' ')
@@ -108,8 +119,15 @@ def draw_start_screen():
         text = font.render("Press any key to start!", True, (255, 255, 255))
         text_rect = text.get_rect(center=(screen.get_width() // 2, (screen.get_height() // 2)))
     else:
-        text = font.render("Press any key to continue!", True, (255, 255, 255))
-        text_rect = text.get_rect(center=(screen.get_width() // 2, (screen.get_height() // 2) - 120))
+        if is_boss_wave(wave_number):
+            boss_text = font.render("BOSS WAVE!", True, (255, 0, 0))
+            boss_rect = boss_text.get_rect(center=(screen.get_width() // 2, (screen.get_height() // 2) - 160))
+            screen.blit(boss_text, boss_rect)
+            text = font.render("Press any key to continue!", True, (255, 255, 255))
+            text_rect = text.get_rect(center=(screen.get_width() // 2, (screen.get_height() // 2) - 120))
+        else:
+            text = font.render("Press any key to continue!", True, (255, 255, 255))
+            text_rect = text.get_rect(center=(screen.get_width() // 2, (screen.get_height() // 2) - 120))
 
     font = pygame.font.Font(None, 30)
     if wave_number > 1:
@@ -229,12 +247,20 @@ def run_level():
     current_time = pygame.time.get_ticks()
     number_of_plastics_that_should_have_been_spawned = calc_plastic_total_spawned(wave_number)
     
-    if plastics_spawned < plastics_to_spawn and current_time - last_plastic_spawn >= PLASTIC_SPAWN_TIME:
+    # Spawn boss on boss waves instead of regular plastics
+    if is_boss_wave(wave_number) and plastics_spawned == 0 and total_plastic_spawned < number_of_plastics_that_should_have_been_spawned:
+        plastic_group.add(PlasticBoss(crab, turtle, screen, wave_number, plastic_group))
+        total_plastic_spawned += 1
+        plastics_spawned += 1
+        last_plastic_spawn = current_time
+    # Regular plastic spawning
+    elif plastics_spawned < plastics_to_spawn and current_time - last_plastic_spawn >= PLASTIC_SPAWN_TIME:
         plastic_group.add(Plastic(crab, turtle, screen, wave_number))  
         total_plastic_spawned += 1
         plastics_spawned += 1
         last_plastic_spawn = current_time
 
+    # Wave completion check (boss waves require all enemies including minions to be defeated)
     if len(plastic_group) == 0 and total_plastic_spawned == number_of_plastics_that_should_have_been_spawned:
         wave_number += 1
         plastics_spawned = 0
@@ -253,14 +279,14 @@ def run_level():
             if bullet.rect.colliderect(plastic.rect):
                 bullet.kill()
                 if plastic.take_damage(100):
-                    coin_count += 1
+                    coin_count += 5 if isinstance(plastic, PlasticBoss) else 1  # Boss gives more coins
 
     for bullet in crab_bullets:
         for plastic in plastic_group:
             if bullet.rect.colliderect(plastic.rect):
                 bullet.kill()
                 if plastic.take_damage(50):
-                    coin_count += 1
+                    coin_count += 5 if isinstance(plastic, PlasticBoss) else 1
 
     crab.check_bullet_collision(plastic_group)
     turtle.check_bullet_collision(plastic_group)

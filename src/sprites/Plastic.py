@@ -97,3 +97,51 @@ class Plastic(pygame.sprite.Sprite):
         # Draw the plastic
         if self.visible:
             screen.blit(self.image, self.rect)
+
+class PlasticBoss(Plastic):
+    def __init__(self, crab, turtle, screen, wave_number, plastic_group):
+        # Initialize the parent Plastic class with all required parameters
+        super().__init__(crab, turtle, screen, wave_number)
+        
+        # Store references to the players
+        self.crab = crab
+        self.turtle = turtle
+        self.wave_number = wave_number
+        self.plastic_group= plastic_group
+        
+        # Boss-specific attributes
+        self.health = 100 + (wave_number * 50)  # Boss has more health
+        self.size = 100  # Bigger size for boss
+        self.spawn_timer = 0
+        self.spawn_interval = 3000  # Spawn minions every 3 seconds
+        
+        # Create boss image
+        self.image = pygame.image.load("assets/images/Plastic.png").convert_alpha()
+        self.image = pygame.transform.scale(self.image, (self.size, self.size))
+        self.rect = self.image.get_rect()
+        self.original_image = self.image.copy()
+        self.speed = 1  # Slower movement
+        
+        # Set initial position (you might want to customize this)
+        self.rect.centerx = random.randint(100, screen.get_width() - 100)
+        self.rect.centery = random.randint(100, screen.get_height() - 100)
+        
+    def update(self, screen):
+        super().update(screen)
+        current_time = pygame.time.get_ticks()
+        
+        # Spawn minions at regular intervals
+        if current_time - self.spawn_timer > self.spawn_interval:
+            self.spawn_minions(screen)
+            self.spawn_timer = current_time
+            
+    def spawn_minions(self, screen):
+        # Spawn 2-4 regular plastic enemies around the boss
+        minion_count = 2 + (self.health % 3)  # Random between 2-4
+        
+        for _ in range(minion_count):
+            # Create minion near the boss
+            minion = Plastic(self.crab, self.turtle, screen, self.wave_number)
+            minion.rect.centerx = self.rect.centerx + random.randint(-50, 50)
+            minion.rect.centery = self.rect.centery + random.randint(-50, 50)
+            self.plastic_group.add(minion)
