@@ -55,7 +55,7 @@ plastic_group = pygame.sprite.Group()
 # Game variables
 last_plastic_spawn = pygame.time.get_ticks()
 PLASTIC_SPAWN_TIME = 1000
-coin_count = 200  # Starting coins
+coin_count = 0  # Starting coins
 wave_number = 1
 plastics_to_spawn = 4
 plastics_spawned = 0
@@ -82,8 +82,16 @@ except:
 info = [
     "Important information about the ocean: The Pacific Ocean is the largest ocean. The ocean contains more than 97% of Earth's water. Over 80% of ocean life remains unexplored.", 
     "Plastic kills turtles :(",
-    "Plastic is not cool"
+    "Plastic is not cool",
+    "Every year, around 8 million metric tons of plastic end up in the ocean.",
+    "There is a massive collection of floating plastic in the Pacific Ocean called the Great Pacific Garbage Patch.",
+    "Microplastics, tiny plastic particles, have been found in fish, sea salt, and even drinking water.",
+    "Marine animals often mistake plastic for food, which can lead to starvation and poisoning.",
+    "Plastic waste can take hundreds of years to break down in the ocean.",
+    "Over 1 million marine animals, including seabirds and sea turtles, die each year due to plastic pollution.",
+    "Plastic pollution affects human health as toxic chemicals from plastics enter the food chain."
 ]
+
 
 def is_boss_wave(wave_number):
     return wave_number % BOSS_WAVE_INTERVAL == 0
