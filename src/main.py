@@ -1,5 +1,6 @@
 import pygame
 import random
+import asyncio
 from sprites.Turtle import Turtle
 from sprites.Crab import Crab
 from sprites.Plastic import Plastic
@@ -330,55 +331,59 @@ def run_level():
     return True
 
 # Main Game Loop
-running = True
-while running:
-    if game_state == START_SCREEN:       
-        draw_start_screen()
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            if event.type == pygame.KEYDOWN:
-                game_state = PLAYING
+async def main():
+    running = True
+    while running:
+        if game_state == START_SCREEN:       
+            draw_start_screen()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                if event.type == pygame.KEYDOWN:
+                    game_state = PLAYING
     
-    elif game_state == SHOP_SCREEN:
-        if background_image:
-            screen.blit(background_image, (0, 0))
-        else:
-            screen.fill((0, 0, 50))  # Fallback color
+        elif game_state == SHOP_SCREEN:
+            if background_image:
+                screen.blit(background_image, (0, 0))
+            else:
+                screen.fill((0, 0, 50))  # Fallback color
             
-        turtle_bullets.draw(screen)
-        crab_bullets.draw(screen)
-        player_sprites.draw(screen)
-        plastic_group.draw(screen)
-        draw_health(screen, turtle, crab)
-        draw_coins(screen)
-        draw_wave(screen)
+            turtle_bullets.draw(screen)
+            crab_bullets.draw(screen)
+            player_sprites.draw(screen)
+            plastic_group.draw(screen)
+            draw_health(screen, turtle, crab)
+            draw_coins(screen)
+            draw_wave(screen)
         
-        shop.update(coin_count)
-        screen.blit(shop.image, shop.rect.topleft)
+            shop.update(coin_count)
+            screen.blit(shop.image, shop.rect.topleft)
         
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            coins_spent = shop.handle_input(event, coin_count)
-            coin_count -= coins_spent
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                coins_spent = shop.handle_input(event, coin_count)
+                coin_count -= coins_spent
         
-        if not shop.is_open and not shop.is_animating:
-            game_state = PLAYING
-
-    elif game_state == PLAYING:
-        running = run_level()
-
-    elif game_state == GAME_OVER:
-        draw_game_over()
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
-                reset_game()
+            if not shop.is_open and not shop.is_animating:
                 game_state = PLAYING
+
+        elif game_state == PLAYING:
+            running = run_level()
+
+        elif game_state == GAME_OVER:
+            draw_game_over()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                    reset_game()
+                    game_state = PLAYING
         
-    pygame.display.flip()
-    clock.tick(60)
+        await asyncio.sleep(0)
+        pygame.display.flip()
+        clock.tick(60)
 
 pygame.quit()
+
+asyncio.run(main())

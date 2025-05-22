@@ -1,0 +1,6 @@
+[project]
+name = "ocean_game"
+version = "1.0.0"
+
+[tool.pygbag]
+entrypoint = "main.py"
